@@ -26,12 +26,12 @@ Flyweight 패턴에서는 변하지 않고 공유되는 속성인 Intrinsic Stat
 
 예시로 총알피하기 게임이 있다고 해보자 우리가 흔히 아는 1942 아케이드 게임을 기억하면 쉽다.
 
-![alt text](image-1.png) 
+![alt text](/image/image-1.png) 
 
 이 게임 속 총알을 만약 계속해서 new로 인스턴스를 생성하면 어떻게 될까? 
 
 
-![alt text](image.png)
+![alt text](/image/image.png)
 
 위의 사진과 같이 총알을 Particle 클래스로 만들면 백만개의 총알을 생성시 21GB나 잡아먹어서 시스템이 터지게 될 것이다. 
 
@@ -41,7 +41,7 @@ Flyweight 패턴에서는 변하지 않고 공유되는 속성인 Intrinsic Stat
 
 그렇게 되면 그 외의 총알의 속도나 방향성 같이 각 총알마다 다른 속성만 새로 생성하고, 겹치는 속성인 색과 이미지는 공유하게 되어 메모리가 많이 세이브된다.
 
-![alt text](image-3.png)
+![alt text](/image/image-3.png)
 
 위의 그림과 같이 말도 안되게 세이브 되는 모습을 볼 수 있다.
 
@@ -62,7 +62,7 @@ Flyweight 패턴에서는 변하지 않고 공유되는 속성인 Intrinsic Stat
 
 
 
-## UnsahredConcreteFlyweight
+## **UnsahredConcreteFlyweight**
 
 비공유 객체로서 나무의 위치를 필드값으로 저장하고 있다. 그리고 공유객체인 TreeType을 상속 받는 것이 아닌 컴포지션하고 있다.
 
@@ -91,7 +91,7 @@ public class Tree {
 }
 ```
 
-## ConcreteFlyweight
+## **ConcreteFlyweight**
 
 공유 객체로서 트리의 공통적인 속성인 나무 종의 이름과 색 등을 포함하고 있다.
 
@@ -120,7 +120,7 @@ public class TreeType {
     }
 }
 ```
-## FlyweightFactory
+## **FlyweightFactory**
 
 static한 HashMap인 treeTypes를 필드로 가짐으로서 캐싱해서 사용하는 것.
 클래스가 메모리에 로드 될 때 한번만 생성되고 프로그램 전체에 공유된다.
@@ -149,7 +149,7 @@ public class TreeFactory {
     }
 }
 ```
-## 구현 코드
+## **구현 코드**
 
 해당 platTree 메소드를 호출 시 Extrisic 객체는 새롭게 생성하고, 공유 객체를 사용할 수 있는 지 확인 후 사용할 수 있으면 사용.
 
@@ -183,7 +183,7 @@ public class Forest extends JFrame {
 }
 ```
 
-## Client 코드 
+## **Client 코드** 
 
 ```java
 package refactoring_guru.flyweight.example;
@@ -235,10 +235,32 @@ Tree size (8 bytes) * 1000000
 ---------------------
 Total: 7MB (instead of 36MB)
 ```
+---
 
+# 🚄 장점 
 
+### 메모리 절약 
 
+결과에서도 명확하게 보이듯, 캐싱하여 데이터를 공유하여 사용하므로 메모리가 절약된다.
+
+# 🚃 단점 
+
+### CPU 사용량 증가
+결국 Flyweight객체가 내부상태와 외부상태로 분리되어 있기에 메소드 호출마다 외부 상태와 결합하거나 컨텍스트 데이터를 다시 계산해야 될 수 있다. 
+
+이런 계산이 많아지면 RAM 절약 효과대신 CPU사용률이 증가한다.
+
+### 코드 복잡성 증가
+
+이러한 패턴들 뒤에 따라오는 typical한 문제인 것같다.
+결국 남이 봤을 때 명확히 이해가 가지 않을 수 있다.
+
+---
+
+# 🚩 주의할 점
+
+결국 캐싱을 사용하는 것이기에 메모리 관리를 잘해줘야된다. 객체가 강한 참조로 유지되고 있으면 GC는 해당 객체를 제거하지 않기에 더 이상 쓰이지 않을 경우 메모리 낭비가 되는 것이다.
+
+*자바에서 참조란 무엇인가?*
 ~~~~
-출처: https://inpa.tistory.com/entry/GOF-%F0%9F%92%A0-Flyweight-%ED%8C%A8%ED%84%B4-%EC%A0%9C%EB%8C%80%EB%A1%9C-%EB%B0%B0%EC%9B%8C%EB%B3%B4%EC%9E%90
-
-https://refactoring.guru/design-patterns/flyweight
+출처: https://refactoring.guru/design-patterns/flyweight
