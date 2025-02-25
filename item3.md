@@ -142,6 +142,115 @@ public class Main {
 
 즉, 메서드 참조 (::)를 이용해 싱글턴 인스턴스를 공급하는 함수로 사용할 수 있다는 의미입니다.
 
+---
+> Supplier란?  - (2025.02.25 추가)
+>
+> <T>는 매개변수 없이 값을 반환하는 함수형 인터페이스입니다.
+
+📌 Supplier<T>의 특징
+- 매개변수가 없음 → get() 메서드만 존재
+- 값을 반환하지만, 매개변수를 받지 않음
+- get()을 호출할 때마다 새로운 값을 반환할 수도 있고, 동일한 값을 반환할 수도 있음 (예: 싱글턴 인스턴스를 반환)
+
+📌 Supplier<T>의 인터페이스 정의
+```java
+@FunctionalInterface
+public interface Supplier<T> {
+    T get();
+}
+```
+제네릭 T : get() 메서드가 반환할 값의 타입을 지정
+
+get() : 값을 반환하는 유일한 메서드
+
+싱글톤 예제
+```java
+import java.util.function.Supplier;
+
+public class Singleton {
+    private static final Singleton INSTANCE = new Singleton();
+
+    private Singleton() {}
+
+    public static Singleton getInstance() {
+        return INSTANCE;
+    }
+
+    // ✅ Supplier로 제공 (메서드 참조 사용 가능)
+    public static final Supplier<Singleton> supplier = Singleton::getInstance;
+}
+```
+### 사용예시
+```java
+public class Main {
+    public static void main(String[] args) {
+        // ✅ Supplier 사용
+        Supplier<Singleton> instanceSupplier = Singleton.supplier;
+
+        Singleton s1 = instanceSupplier.get();
+        Singleton s2 = instanceSupplier.get();
+
+        System.out.println(s1 == s2); // ✅ true (싱글턴 유지됨)
+    }
+}
+```
+
+📌 Supplier를 활용하는 이유
+
+1. 지연 초기화 (Lazy Initialization)
+- Supplier.get()을 호출할 때만 객체를 생성할 수도 있음.
+- 예: 싱글턴이지만 필요할 때만 객체를 생성하고 싶을 때.
+
+2. 의존성 주입(DI)에서 활용
+- Supplier<T>를 주입하면, 필요할 때 객체를 제공할 수 있음.
+- Spring 같은 프레임워크에서 유용하게 사용됨.
+
+3. 가독성 및 유연성 증가
+- Supplier를 사용하면 정적 메서드를 직접 호출하지 않고도 값을 가져올 수 있음.
+
+## :: 연산자 ( 메서드 참조 )
+
+람다 표현식 (()->)을 더욱 간결하게 작성할 수 있도록 도와줍니다.
+
+### 사용 예제
+
+-> 사용
+
+```java
+import java.util.function.Supplier;
+
+public class Example {
+    public static void printMessage() {
+        System.out.println("Hello, Method Reference!");
+    }
+
+    public static void main(String[] args) {
+        Supplier<String> supplier = () -> "Hello, Method Reference!";
+        System.out.println(supplier.get()); // ✅ Hello, Method Reference!
+    }
+}
+```
+:: 사용
+```java
+import java.util.function.Supplier;
+
+public class Example {
+    public static void printMessage() {
+        System.out.println("Hello, Method Reference!");
+    }
+
+    public static void main(String[] args) {
+        Supplier<String> supplier = Example::getMessage;
+        System.out.println(supplier.get()); // ✅ Hello, Method Reference!
+    }
+
+    public static String getMessage() {
+        return "Hello, Method Reference!";
+    }
+}
+```
+---
+
 ```java
 import java.util.function.Supplier;
 
@@ -263,6 +372,7 @@ public class Main {
 }
 ```
 
+---
 ## readResolve() vs readObject() - (2025.02.25 추가)
 
 ### ✅ readResolve()
