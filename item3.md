@@ -194,7 +194,7 @@ public class Singleton implements Serializable { // Serializable 구현
 }
 ```
 
-직렬화 및 역질렬화 실행
+직렬화 및 역직렬화 실행
 ```java
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -263,6 +263,48 @@ public class Main {
 }
 ```
 
+## readResolve() vs readObject() - (2025.02.25 추가)
+
+### ✅ readResolve()
+
+객체를 대체
+
+역직렬화된 객체를 기존 객체로 교체하는 역할 → 새로운 객체가 생성되는 것을 막고, 기존 객체를 반환
+
+🛠 readResolve() 동작 방식
+1. ObjectInputStream.readObject() 실행 시 새로운 객체가 생성됨.
+2. 클래스에 readResolve()가 존재하면 자동으로 호출됨.
+3. 새로운 객체를 무시하고, readResolve()가 반환하는 객체를 대신 사용함.
+
+### ✅ readObject()
+
+객체 상태 복원
+
+역직렬화된 데이터를 이용해 객체의 상태를 복원하는 역할 → 객체가 직렬화되기 전과 동일한 상태로 복구
+
+🛠 readObject() 동작 방식
+1. ObjectInputStream.readObject() 실행 시 새로운 객체가 생성됨.
+2. 해당 클래스에 readObject(ObjectInputStream in)가 정의되어 있으면 자동 호출됨.
+3. 기본 역직렬화(defaultReadObject())를 수행한 후 추가적인 로직을 실행할 수 있음.
+
+즉, ObjectInputStream.readObject()이 함수를 실행하면 새로운 객체가 생성이 되는데 
+
+클래스에 readResolve()를 구현 해놓으면 자동으로 호출이 되어서 새로운 객체가 무시되고 readResolve()가 반환하는 객체를 대신 사용함
+
+📌 JVM 내부에서 readObject()와 readResolve()가 동작하는 과정
+
+1️⃣ ObjectInputStream.readObject() 실행
+- JVM은 새로운 객체를 생성하려고 시도합니다.
+- 기본적으로 직렬화된 데이터를 이용해 필드 값을 복구합니다.
+
+2️⃣ 클래스에 readResolve()가 존재하는지 확인
+- readResolve()가 있으면, JVM이 자동으로 호출합니다.
+- readResolve()가 반환하는 객체를 사용하고, 새로 생성된 객체는 무시됩니다.
+
+3️⃣ 결과적으로 readResolve()가 반환하는 객체를 최종적으로 사용
+- 싱글턴 패턴(Singleton)처럼 기존 객체를 유지해야 하는 경우에 유용합니다.
+
+---
 ### (추천) 해결방법 2. Enum Singleton은 직렬화 문제를 자동 해결
 
 싱글턴을 가장 안전하게 직렬화하려면 enum을 사용하는 것이 좋습니다.
