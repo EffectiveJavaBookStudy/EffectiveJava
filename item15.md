@@ -238,6 +238,180 @@ Animal 타입의 참조 변수가 Dog 객체를 가리킬 때 makeSound() 메서
 
 만약 Dog에서 makeSound()의 접근 제한자를 private 또는 protected로 변경한다면 Animal 타입에서 호출이 불가능해지므로 LSP를 위반하게 됩니다.
 
-# public 클래스의 인스턴스 필드는 되도록 public이 아니어야 합니다.
+## public 클래스의 인스턴스 필드는 되도록 public이 아니어야 합니다.
 
+```java
+// ❌ 잘못된 설계: public 가변 필드를 가진 클래스 (스레드 안전하지 않음)
+public class UnsafeCounter {
+    public int count = 0; // public 가변 필드
 
+    public void increment() {
+        count++; // 여러 스레드에서 동시에 접근하면 문제 발생 가능
+    }
+}
+
+// 실행 코드 (멀티스레드 환경에서 동작 확인)
+public class TestUnsafeCounter {
+    public static void main(String[] args) {
+        UnsafeCounter counter = new UnsafeCounter();
+
+        // 1000개의 스레드가 동시에 count 증가
+        for (int i = 0; i < 1000; i++) {
+            new Thread(() -> counter.increment()).start();
+        }
+
+        // 잠시 대기 후 결과 출력 (정확한 값이 아닐 가능성이 높음)
+        try {
+            Thread.sleep(1000); // 스레드들이 모두 실행될 시간을 줌
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("최종 count 값: " + counter.count); // ❌ 예측 불가능한 결과 발생 가능
+    }
+}
+```
+public 가변 필드를 갖는 클래스는 일반적으로 스레드 안전하지 않습니다.
+
+여러가지 스레드에서 count를 접근할 수 있게 되어 문제가 생기게 됩니다.
+
+```java
+// ✅ 캡슐화 적용: private 필드 + 동기화된 접근 방식
+public class SafeCounter {
+    private int count = 0; // private으로 변경하여 직접 접근 차단
+
+    public synchronized void increment() { // synchronized로 스레드 안전성 확보
+        count++;
+    }
+
+    public synchronized int getCount() { // 안전하게 값을 읽을 수 있도록 메서드 제공
+        return count;
+    }
+}
+
+// 실행 코드
+public class TestSafeCounter {
+    public static void main(String[] args) {
+        SafeCounter counter = new SafeCounter();
+
+        for (int i = 0; i < 1000; i++) {
+            new Thread(() -> counter.increment()).start();
+        }
+
+        try {
+            Thread.sleep(1000); // 스레드들이 실행될 시간을 줌
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("최종 count 값: " + counter.getCount()); // ✅ 항상 1000 보장
+    }
+}
+```
+
+개선 사항
+1. 데이터 경쟁 방지 → synchronized 키워드를 사용해 동기화 처리
+2. 불변성 유지 → count 필드를 private으로 선언하여 직접 접근 방지
+3. 캡슐화 강화 → 외부에서 count를 변경할 수 없으며, getCount() 메서드를 통해 안전하게 값 제공
+
+## 클래스에서 public static final 배열 필드를 두거나 이 필드를 반환하는 접근자 메서드를 제공해서는 안된다.
+
+자바에서 `public static final`로 선언된 배열 필드는 불변(Immutable) 해 보이지만
+
+실제로는 외부에서 수정할 수 있는 보안 취약점이 존재합니다.  
+
+## 보안 허점 존재하는 예시
+
+```java
+public class UnsafeClass {
+    public static final String[] VALUES = {"A", "B", "C"};
+}
+```
+
+✅ VALUES 배열이 public static final로 선언되어 있기 때문에 변경이 불가능할 것처럼 보입니다.
+
+❌ 하지만 배열 자체는 final이지만, 배열의 내용(요소)은 변경할 수 있습니다.
+
+```java
+public class TestUnsafe {
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString(UnsafeClass.VALUES)); // [A, B, C]
+
+        // 배열 요소 변경 시도
+        UnsafeClass.VALUES[0] = "X";
+        UnsafeClass.VALUES[1] = "Y";
+
+        // 원본 배열이 변경됨!
+        System.out.println(Arrays.toString(UnsafeClass.VALUES)); // [X, Y, C]
+    }
+}
+```
+
+이렇게 되면 보안 문제가 발생합니다.
+
+final 키워드는 참조(배열의 주소) 를 변경할 수 없도록 할 뿐 배열 내부 값은 수정이 가능합니다.
+
+-> 외부에서 직접 배열을 수정하면 원래 의도했던 값이 변질될 수 있습니다!
+
+## ✅ 해결 방법 
+
+### ✅ 방법 1 : private 배열 + public 불변 리스트 반환
+```java
+import java.util.Collections;
+import java.util.List;
+import java.util.Arrays;
+
+public class SafeClass {
+    private static final String[] VALUES = {"A", "B", "C"};
+
+    public static final List<String> getValues() {
+        return Collections.unmodifiableList(Arrays.asList(VALUES));
+    }
+}
+```
+
+🛡️ 보안 강화
+- VALUES 배열을 private으로 선언하여 직접 접근을 막음
+- unmodifiableList()를 사용하여 외부에서 리스트를 변경할 수 없도록 보장
+
+```java
+public class TestSafe {
+    public static void main(String[] args) {
+        System.out.println(SafeClass.getValues()); // [A, B, C]
+
+        // SafeClass.getValues().set(0, "X"); // ❌ UnsupportedOperationException 발생!
+    }
+}
+```
+
+### ✅ 방법 2 : clone()을 이용한 복사본 반환
+
+```java
+
+public class SafeClassClone {
+    private static final String[] VALUES = {"A", "B", "C"};
+
+    public static final String[] getValues() {
+        return VALUES.clone(); // ✅ 원본이 아닌 복사본 반환
+    }
+}
+```
+```java
+public class TestSafeClone {
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString(SafeClassClone.getValues())); // [A, B, C]
+
+        // 복사본이므로 원본 배열에는 영향을 주지 않음
+        String[] modifiedArray = SafeClassClone.getValues();
+        modifiedArray[0] = "X";
+        
+        System.out.println(Arrays.toString(SafeClassClone.getValues())); // [A, B, C] (변경되지 않음)
+    }
+}
+```
+
+# 결론
+
+필요한 것들만 골라서 public으로 선언을 하자!
+
+public 클래스는 `public static final` 필드 외에는 어떠한 public 필드도 가져서는 안됩니다!
