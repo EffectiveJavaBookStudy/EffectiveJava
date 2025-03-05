@@ -65,29 +65,29 @@ public class Favorites {
     }
 }
 ```
-✔️ `Map<Class<?>, Object>`
+### ✔️ `Map<Class<?>, Object>`
 
 키를 비한정적인 와일드카드 타입으로 선언하였기 때문에, 이를 통해서 다양한 매개변수화 타입의 키를 허용할 수 있게 되었습니다. 
 
 만약 Map<Class<T>, Object> 였다면 오직 한가지 타입의 키만 담을 수 있었을 겁니다.
 
-✔️ `Class.cast`
+### ✔️ `Class.cast`
 value 가 Object 타입이므로 맵에 넣을때 값이 키 타입의 인스턴스라는 것이 보장되지 않습니다.
 
 맵에서 가져올때는 cast 메서드를 사용해 이 객체 참조를 class 객체가 가리키는 T 타입으로 동적 변환하고 있습니다.
 
 이렇게 Favorites 인스턴스는 타입 안전하며 일반적인 맵과 달리 여러 가지 타입의 원소를 담을 수 있기 때문에, 타입 안전 이종 컨테이너라고 할 수 있습니다.
 
-✅ 클래스 타입을 키로 사용하여, 여러 다른 타입의 값을 안전하게 저장하고 검색할 수 있습니다!
+## ✅ 클래스 타입을 키로 사용하여, 여러 다른 타입의 값을 안전하게 저장하고 검색할 수 있습니다!
 
-## ❌ 타입 안전 이종 컨테이너의 한계
-### 1. 비한정적 타입 토큰 사용 시 타입 안정성이 깨질 위험이 존재합니다.
+# ❌ 타입 안전 이종 컨테이너의 한계
+### 1. Class 객체를 제네릭이 아닌 로 타입으로 넘기면 타입 안전성이 쉽게 깨집니다.
 ```java
 f.putFavorite((Class) Integer.class, "문자열");
 int result = f.getFavorite(Integer.class);  // ❌ ClassCastException 발생
 ```
 
-### ✅ 해결방법
+### ✅ cast를 통해 해결
 - `putFavorite` 메서드에서 `type.cast(instance)`를 사용하여 동적 타입 변환을 수행하면 방지 가능
 
 ```java
@@ -101,24 +101,31 @@ public <T> void putFavorite(Class<T> type, T instance) {
 List<String> list = new ArrayList<>();
 f.putFavorite(List.class, list); // ❌ 컴파일 오류 발생
 ```
-이유 : `List<String>`과 `List<Integer>`는 `List.class`를 공유하며, 개별적인 `Class` 객체가 존재하지 않습니다.
 
-### ✅ 해결방법
+`List<String>`과 `List<Integer>`는 `List.class`를 공유하며, 개별적인 `Class` 객체가 존재하지 않습니다.
+
+따라서 String 이나 String[] 와 다르게 키로 저장하려 하면 컴파일 에러가 나게 됩니다.
+
+### ✅ `ParameterizedTypeReference` 사용으로 해결
 - Spring 프레임워크에서는 슈퍼 타입 토큰(Super Type Token)인 `ParameterizedTypeReference`를 활용하여 해결
 - JSON 파싱 등에서 유용하게 사용됨
 
 ```java
-public class TypeReference<T> {
-    private final Type type;
-    protected TypeReference() {
-        this.type = ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+inline fun <reified T: Any> readFileData(readPath: String): T = run {
+    try {
+         FileReader(readPath).use {
+             val typeRef = object : TypeReference<T>() {} // TypeReference
+             return objectMapper.readValue(it, typeRef)
+         }
+    } catch (e: IOException) {
+        throw CommonException(ResponseCode.INTERNAL_SERVER_ERROR, e)
     }
 }
+
 ```
 
----
+## ✅ 한정적 타입 토큰 (Bounded Type Token) 사용
 
-## ✅ 한정적 타입 토큰 (Bounded Type Token) 사용하기
 **`Favorites` 클래스는 모든 `Class<?>` 타입을 허용하는 "비한정적 타입 토큰"을 사용합니다. 만약 특정 타입만 허용하고 싶다면 한정적 타입 토큰을 사용할 수 있습니다.
 
 ### 특정 타입(애너테이션)만 허용하는 메서드 예제
@@ -148,10 +155,10 @@ static Annotation getAnnotation(AnnotatedElement element, String annotationTypeN
 ✅ `asSubclass(Annotation.class)`를 사용하여 안전하게 `Annotation`으로 변환해줍니다.
 
 # ✅ 결론
-✔️ 일반적인 제네릭 컨테이너는 타입 매개변수 개수가 고정됩니다.
-✔️ 타입 안전 이종 컨테이너는 키를 제네릭으로 만들면 여러 타입을 안전하게 저장할 수 있습니다.
-✔️ Class 객체를 키로 사용하여 런타임 타입 안정성을 제공합니다.
-✔️ 비한정적 타입 토큰 사용 시 타입 안정성이 깨질 위험이 있으며 한정적 타입 토큰을 사용할 수도 있습니다.
+✔️ 일반적인 제네릭 컨테이너는 타입 매개변수 개수가 고정됩니다.  
+✔️ 타입 안전 이종 컨테이너는 키를 제네릭으로 만들면 여러 타입을 안전하게 저장할 수 있습니다.  
+✔️ Class 객체를 키로 사용하여 런타임 타입 안정성을 제공합니다.  
+✔️ 비한정적 타입 토큰 사용 시 타입 안정성이 깨질 위험이 있으며 한 정적 타입 토큰을 사용할 수도 있습니다.  
 ✔️ 실체화 불가능한 타입(Generic Type)은 직접 사용할 수 없으나 `ParameterizedTypeReference` 같은 대안을 활용 가능합니다.
 ✔️ Spring의 `checkedCollection()`, `TypeReference` 등도 이 패턴을 활용하고 있습니다.
 
